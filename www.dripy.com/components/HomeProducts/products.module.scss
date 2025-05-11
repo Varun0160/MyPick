@@ -1,4 +1,4 @@
-@import "../../styles/breakpoints.scss";
+@use "../../styles/breakpoints.scss" as *;
 
 .container {
   margin-top: 20px;
@@ -13,6 +13,7 @@
   gap: 20px;
 
   @include md {
+    // Medium devices grid layout
     grid-template-areas:
       "first first"
       "second second"
@@ -23,6 +24,7 @@
   }
 
   @include lg {
+    // Large devices grid layout
     grid-template-areas:
       "first first third fourth"
       "second second third fourth";

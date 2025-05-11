@@ -18,7 +18,7 @@ function registerDatabase({ id, email, name, surname }) {
   });
 }
 
-function registerSellerDatabase({id, email, name}) {
+function registerSellerDatabase({ id, email, name }) {
   return db.collection("Users").doc(id).set({
     name,
     email,
@@ -32,4 +32,4 @@ function registerSellerDatabase({id, email, name}) {
   });
 }
 
-export { emailRegister, registerDatabase,registerSellerDatabase };
+export { emailRegister, registerDatabase, registerSellerDatabase };

@@ -1,4 +1,4 @@
-@import "../../styles/breakpoints.scss";
+@use "../../styles/breakpoints.scss" as *;
 
 .container {
   display: flex;
@@ -8,6 +8,7 @@
   background-color: white;
   flex-direction: column;
   margin-bottom: 20px;
+
   @include md {
     width: 250px;
     margin-bottom: 0px;
@@ -77,6 +78,7 @@
       }
     }
   }
+
   .helpContainer {
     display: none;
     align-items: center;

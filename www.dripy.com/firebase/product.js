@@ -1,4 +1,5 @@
-import { firebase, auth, db } from "../config/firebase";
+import { db, auth } from "../config/firebase";
+import { arrayUnion, arrayRemove } from "firebase/firestore";
 
 function addFavorite(id) {
   const currentUser = auth.currentUser.uid;
@@ -7,7 +8,7 @@ function addFavorite(id) {
     .collection("Users")
     .doc(currentUser)
     .update({
-      favorites: firebase.firestore.FieldValue.arrayUnion(id),
+      favorites: arrayUnion(id),
     });
 }
 
@@ -18,7 +19,7 @@ function removeFavorite(id) {
     .collection("Users")
     .doc(currentUser)
     .update({
-      favorites: firebase.firestore.FieldValue.arrayRemove(id),
+      favorites: arrayRemove(id),
     });
 }
 

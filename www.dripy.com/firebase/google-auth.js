@@ -9,7 +9,6 @@ export default function googleAuth() {
         .get()
         .then((doc) => {
           if (!doc.exists) {
-            console.log("Document data:", doc.data());
             db.collection("Users").doc(result.user.uid).set({
               email: result.additionalUserInfo.profile.email,
               name: result.additionalUserInfo.profile.given_name,
@@ -25,6 +24,6 @@ export default function googleAuth() {
         });
     })
     .catch(function (error) {
-      console.log(error);
+      console.error("Google Auth Error: ", error);
     });
 }
