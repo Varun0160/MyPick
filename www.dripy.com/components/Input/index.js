@@ -1,15 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 
 import styles from "./input.module.scss";
 
-export default function Input({
-  register,
-  required = true,
-  error,
-  noMargin,
-  ...props
-}) {
+const Input = forwardRef(({ error, noMargin, ...props }, ref) => {
   const [focus, setFocus] = useState(false);
+  
   return (
     <input
       className={styles.container}
@@ -18,10 +13,13 @@ export default function Input({
         backgroundColor: focus && "white",
         margin: noMargin && 0,
       }}
-      ref={register && register({ required })}
+      ref={ref}
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
       {...props}
     />
   );
-}
+});
+
+Input.displayName = 'Input';
+export default Input;

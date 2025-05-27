@@ -1,11 +1,14 @@
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 
 function emailRegister({ email, password }) {
-  return auth.createUserWithEmailAndPassword(email, password);
+  return createUserWithEmailAndPassword(auth, email, password);
 }
 
 function registerDatabase({ id, email, name, surname }) {
-  return db.collection("Users").doc(id).set({
+  const userRef = doc(db, "Users", id);
+  return setDoc(userRef, {
     name,
     surname,
     email,
@@ -19,7 +22,8 @@ function registerDatabase({ id, email, name, surname }) {
 }
 
 function registerSellerDatabase({ id, email, name }) {
-  return db.collection("Users").doc(id).set({
+  const userRef = doc(db, "Users", id);
+  return setDoc(userRef, {
     name,
     email,
     products: [],

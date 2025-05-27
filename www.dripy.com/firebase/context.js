@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext, createContext } from "react";
-import { firebase, auth, db } from "../config/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
 
 const authContext = createContext();
 
@@ -16,22 +18,30 @@ function useProvideAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const getCurrentUser = () => {
+  const getCurrentUser = async () => {
     if (auth.currentUser?.uid) {
-      db.collection("Users")
-        .doc(auth.currentUser.uid)
-        .get()
-        .then((doc) => {
-          setUser(doc.data());
-          setLoading(false);
-        });
+      try {
+        const userDocRef = doc(db, "Users", auth.currentUser.uid);
+        const docSnap = await getDoc(userDocRef);
+
+        if (docSnap.exists()) {
+          setUser(docSnap.data());
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setUser(null);
+      }
+      setLoading(false);
     } else {
+      setUser(null);
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(() => getCurrentUser());
+    const unsubscribe = onAuthStateChanged(auth, () => getCurrentUser());
     return () => unsubscribe();
   }, []);
 

@@ -1,32 +1,29 @@
+import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db, auth } from "../config/firebase";
-import { arrayUnion, arrayRemove } from "firebase/firestore";
 
-function addFavorite(id) {
-  const currentUser = auth.currentUser.uid;
+async function addFavorite(id) {
+  if (!auth.currentUser?.uid) return;
 
-  return db
-    .collection("Users")
-    .doc(currentUser)
-    .update({
-      favorites: arrayUnion(id),
-    });
+  const userRef = doc(db, "Users", auth.currentUser.uid);
+  return updateDoc(userRef, {
+    favorites: arrayUnion(id),
+  });
 }
 
-function removeFavorite(id) {
-  const currentUser = auth.currentUser.uid;
+async function removeFavorite(id) {
+  if (!auth.currentUser?.uid) return;
 
-  return db
-    .collection("Users")
-    .doc(currentUser)
-    .update({
-      favorites: arrayRemove(id),
-    });
+  const userRef = doc(db, "Users", auth.currentUser.uid);
+  return updateDoc(userRef, {
+    favorites: arrayRemove(id),
+  });
 }
 
-function addToCart(newCart) {
-  const currentUser = auth.currentUser.uid;
+async function addToCart(newCart) {
+  if (!auth.currentUser?.uid) return;
 
-  return db.collection("Users").doc(currentUser).update({
+  const userRef = doc(db, "Users", auth.currentUser.uid);
+  return updateDoc(userRef, {
     cart: newCart,
   });
 }

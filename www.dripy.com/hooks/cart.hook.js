@@ -1,59 +1,36 @@
-import { db, auth } from "@/config/firebase";
 import { useState, useEffect } from "react";
+import { collection, doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
 
-const useCart = (id) => {
-  const [data, setData] = useState([]);
+export const useCart = () => {
+  const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchFromFirestore() {
-      auth.currentUser &&
-        db
-          .collection("Users")
-          .doc(auth.currentUser?.uid)
-          .onSnapshot(function (doc) {
-            setData(doc.data().cart);
-          });
-    }
+    let unsubscribe;
+
+    const fetchFromFirestore = () => {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "Users", auth.currentUser.uid);
+
+        unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            const userData = docSnapshot.data();
+            setData(userData.cart || {});
+          } else {
+            setData({});
+          }
+          setLoading(false);
+        });
+      } else {
+        setData({});
+        setLoading(false);
+      }
+    };
 
     fetchFromFirestore();
-  }, [auth.currentUser]);
+    return () => unsubscribe && unsubscribe();
+  }, []);
 
-  return {
-    data,
-    loading,
-    error,
-  };
+  return { data, loading };
 };
-
-const useCartOnce = (id) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  console.log("once");
-
-  useEffect(() => {
-    async function fetchFromFirestore() {
-      console.log("once inner");
-
-      db.collection("Users")
-        .doc(auth.currentUser?.uid)
-        .get()
-        .then(function (doc) {
-          setData(doc.data().cart);
-          setLoading(false);
-        })
-        .catch((e) => setError(e));
-    }
-    auth.currentUser?.uid && fetchFromFirestore();
-  }, [auth.currentUser]);
-
-  return {
-    data,
-    loading,
-    error,
-  };
-};
-
-export { useCart, useCartOnce };

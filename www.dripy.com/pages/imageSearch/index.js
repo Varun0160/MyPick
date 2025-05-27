@@ -1,109 +1,190 @@
+import React, { useState, useEffect } from "react";
 import ProductCard from "@/components/ProductCard/product-card";
-import { db, storage, firebase } from "@/config/firebase";
+import { db } from "@/config/firebase";
 import { useAuth } from "@/firebase/context";
 import Layout from "components/Layout";
 import Head from "next/head";
-import { useState } from "react";
-
+import { collection, query, where, getDocs } from "firebase/firestore";
 import styles from "./imageSearch.module.scss";
+
+const API_BASE_URL = 'http://127.0.0.1:5000';
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 export default function ImageSearch() {
   const { user, loading } = useAuth();
-  const [linkVal, setLinkVal] = useState("")
-  const [reddata, setData] = useState()
-  console.log(user, loading);
+  const [linkVal, setLinkVal] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState(null);
+  const [serverStatus, setServerStatus] = useState("unknown");
 
-  // const uploadToFirebase = (e) => {
-  //   const file = e.target.files[0]
-  //   const storageRef = storage.ref('img/'+file.name);
-  //   const task = storageRef.put(file);
-  //   task.on('state_changed', function progress(snapshot) {
-  //     var percentage = (snapshot.bytesTransferred/snapshot.totalBytes)*100;
-  //     setUploaderVal(percentage);
+  // Check server status periodically
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/health`);
+        if (response.ok) {
+          const data = await response.json();
+          setServerStatus(data.status === "healthy" ? "running" : "error");
+        } else {
+          setServerStatus("error");
+        }
+      } catch (err) {
+        setServerStatus("error");
+      }
+    };
 
-  //   }, function error(err) {
+    // Check immediately and then every 5 seconds
+    checkServer();
+    const interval = setInterval(checkServer, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-
-  //   },async function  complete(data) {
-  //     console.log("img upload data ,", data)
-  //     const url = await storage.ref("/img/"+file.name).getDownloadURL().then(url => url)
-  //     console.log(url)
-
-  //     const ddata = fetch(`http://localhost:5000/image_search?url=${url}`).then(res => res.json())
-  //     console.log(ddata)
-  //     setData(ddata)
-
-  //   });
-  // }
+  const retryWithDelay = async (fn, retries = MAX_RETRIES) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (i === retries - 1) throw err;
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (i + 1)));
+      }
+    }
+  };
 
   const fetchRecommendations = async (e) => {
-    e.preventDefault()
-    const data = await fetch(`http://localhost:5000/image_search?url=${linkVal}`).then(res => res.json())
-    console.log("recommend data ", data)
-   
-    const recommendIdStrings = []
-    data.result.forEach(r => {
-      recommendIdStrings.push(r.toString())
-    })
-   
-    console.log("string ids, ",recommendIdStrings)
-    await db  
-    .collection("Products")
-    .where(firebase.firestore.FieldPath.documentId(), "in", recommendIdStrings)
-    .get()    
-    .then(function (querySnapshot) {
-      const products = querySnapshot.docs.map(function (doc) {
-        return { id: doc.id, ...doc.data() };
+    e.preventDefault();
+    setIsSearching(true);
+    setError(null);
+    setSearchResults([]);
+
+    try {
+      // Validate URL
+      try {
+        new URL(linkVal);
+      } catch {
+        throw new Error("Please enter a valid image URL");
+      }
+
+      if (serverStatus !== "running") {
+        throw new Error("Image search server is not running. Please wait while we try to connect...");
+      }
+
+      console.log('Fetching recommendations from:', linkVal);
+      
+      const requestUrl = `${API_BASE_URL}/api/image-search?url=${encodeURIComponent(linkVal)}`;
+
+      const response = await retryWithDelay(async () => {
+        const res = await fetch(requestUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || `Server error: ${res.status}`);
+        }
+
+        return data;
       });
-      setData(products);
-    })
-    .catch((e) => (error = e));
 
-    // setData(data)
-  }
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to process image');
+      }
 
-  return (<Layout>
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <main className={styles.main}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>
-            Enter image link to search
-          </h1>
-        </div>
-        <div>
-          <div className={styles.uploadForm} >
-            {/* <form className={styles.form} >
-              <progress id="uploader" value="0" max="100">{uploaderVal}%</progress>
-		<input onChange={uploadToFirebase} type="file" id="fileButton" />
-              </form> */}
+      if (!Array.isArray(response.result)) {
+        throw new Error('Invalid response format');
+      }
 
-            <input onChange={e => setLinkVal(e.target.value)} value={linkVal} type="text" id="imageUrl" />
-            <button onClick={fetchRecommendations} > Search</button>
+      if (response.result.length === 0) {
+        throw new Error('No similar products found');
+      }
+
+      // Fetch product details from Firestore
+      const productsRef = collection(db, "Products");
+      const products = [];
+
+      for (const id of response.result) {
+        const q = query(productsRef, where("id", "==", id.toString()));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+          products.push({ id: doc.id, ...doc.data() });
+        });
+      }
+
+      setSearchResults(products);
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err.message);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  return (
+    <Layout>
+      <div className={styles.container}>
+        <Head>
+          <title>Image Search - Dripy</title>
+          <meta name="description" content="Search for similar fashion items" />
+        </Head>
+
+        <main className={styles.main}>
+          <div className={styles.searchContainer}>
+            <h1>Image Search</h1>
+            <p>Find similar fashion items by providing an image URL</p>
+
+            {serverStatus === "error" && (
+              <div className={styles.warning}>
+                Warning: Image search server is not running. Some features may not work.
+              </div>
+            )}
+
+            <form onSubmit={fetchRecommendations} className={styles.searchForm}>
+              <input
+                type="url"
+                value={linkVal}
+                onChange={(e) => setLinkVal(e.target.value)}
+                placeholder="Paste image URL here..."
+                required
+                className={styles.searchInput}
+              />
+              <button
+                type="submit"
+                className={styles.searchButton}
+                disabled={isSearching || serverStatus !== "running"}
+              >
+                {isSearching ? "Searching..." : "Search"}
+              </button>
+            </form>
+
+            {error && <div className={styles.error}>{error}</div>}
+
+            <div className={styles.searchInfo}>
+              {searchResults.length > 0 && (
+                <p>Found {searchResults.length} similar products</p>
+              )}
+            </div>
           </div>
-        </div>
-        <div className={styles.products}>
-            {!loading && reddata &&
-              reddata.map((product) => {
-                return (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    brand={product.sellers}
-                    name={product.productDisplayName}
-                    image={product.link}
-                    price={product.price + 142}
-                    sale_price={product.price}
-                    favorite={user?.favorites?.includes(product.id)}
-                  />
-                );
-              })}
+
+          <div className={styles.products}>
+            {searchResults.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                brand={product.sellers}
+                name={product.productDisplayName}
+                image={product.link}
+                price={product.price}
+                favorite={user?.favorites?.includes(product.id)}
+              />
+            ))}
           </div>
-      </main>
-    </div>
-  </Layout>
-  )
+        </main>
+      </div>
+    </Layout>
+  );
 }

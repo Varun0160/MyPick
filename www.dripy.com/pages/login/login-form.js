@@ -7,10 +7,8 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Link from "next/link";
 import SocialMediaButton from "@/components/SocialMediaButton";
-// import emailLogin from "firebase/login";
-import emailLogin from "@/config/firebase/login";
-
-import googleAuth from "firebase/google-auth";
+import emailLogin from "@/firebase/login";
+import googleAuth from "@/firebase/google-auth";
 
 const schema = yup.object().shape({
   email: yup.string().email().required("* Email is required."),
@@ -22,41 +20,46 @@ const schema = yup.object().shape({
 
 export default function LoginForm() {
   const [loginError, setLoginError] = useState();
-
-  const { register, handleSubmit, watch, errors } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: yupResolver(schema),
   });
 
-  const onSubmit = (data) => {
-    emailLogin({ email: data.email, password: data.password }).catch((e) =>
-      setLoginError(e.message)
-    );
+  const onSubmit = async (data) => {
+    try {
+      await emailLogin({ email: data.email, password: data.password });
+    } catch (e) {
+      setLoginError(e.message || "Failed to login. Please check your credentials.");
+    }
   };
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       style={{ display: "flex", flexDirection: "column" }}
     >
       <Input
-        name="email"
-        register={register}
+        type="email"
         placeholder="E-mail"
-        error={errors.email}
+        error={errors?.email?.message}
+        {...register("email", { required: true })}
       />
-      {errors.email && (
+      {errors?.email && (
         <span style={{ color: "red", marginTop: 4, fontSize: 14 }}>
           {errors.email.message}
         </span>
       )}
 
       <Input
-        name="password"
-        register={register}
-        placeholder="Password"
         type="password"
-        error={errors.password}
+        placeholder="Password"
+        error={errors?.password?.message}
+        {...register("password", { required: true })}
       />
-      {errors.password && (
+      {errors?.password && (
         <span style={{ color: "red", marginTop: 4, fontSize: 14 }}>
           {errors.password.message}
         </span>

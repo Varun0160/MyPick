@@ -1,0 +1,7 @@
+id,masterCategory,subCategory,productDisplayName,sellers,price,link
+11500,Sporting Goods,Sports Shoes,Nike Air Zoom Running Shoes,Nike,3499,http://localhost:5000/images/11500.jpg
+11501,Sporting Goods,Sports Shoes,Adidas Ultraboost Running Shoes,Adidas,4299,http://localhost:5000/images/11501.jpg
+11502,Sporting Goods,Sports Shoes,Puma RS-X Sports Sneakers,Puma,2999,http://localhost:5000/images/11502.jpg
+11503,Sporting Goods,Sportswear,Nike Dri-FIT Training T-Shirt,Nike,1499,http://localhost:5000/images/11503.jpg
+11504,Sporting Goods,Sportswear,Adidas Performance Training Tee,Adidas,1299,http://localhost:5000/images/11504.jpg
+11505,Sporting Goods,Sportswear,Puma Active Sports T-Shirt,Puma,999,http://localhost:5000/images/11505.jpg

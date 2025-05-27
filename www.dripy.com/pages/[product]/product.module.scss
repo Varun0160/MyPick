@@ -1,9 +1,9 @@
-@import "../../styles/breakpoints.scss";
+@use "../../styles/breakpoints.scss" as *;
 
 .container {
   width: 100%;
   .recommendContainer {
-    paddding-top: 20px;
+    padding-top: 20px;
     .products {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -31,12 +31,17 @@
         @include lg {
           display: none;
         }
-      }
-
-      .carouselContainer {
+      }      .carouselContainer {
         position: relative;
         display: flex;
         justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        padding: 20px;
+        background-color: #f8f8f8;
+        border-radius: 12px;
+        margin: 20px 0;
+
         .carousel {
           position: absolute;
           top: 0;
@@ -44,11 +49,17 @@
           z-index: -1;
           display: flex;
         }
+        
         img {
           max-width: 90vw;
+          max-height: 500px;
+          width: auto;
+          height: auto;
+          object-fit: contain;
 
           @include md {
-            max-width: 30vw;
+            max-width: 100%;
+            max-height: 600px;
           }
         }
       }

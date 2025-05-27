@@ -1,29 +1,32 @@
-import { firebase, auth, db } from "../config/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
 
 export default function googleAuth() {
-  auth
-    .signInWithPopup(new firebase.auth.GoogleAuthProvider())
-    .then(function (result) {
-      db.collection("Users")
-        .doc(result.user.uid)
-        .get()
-        .then((doc) => {
-          if (!doc.exists) {
-            db.collection("Users").doc(result.user.uid).set({
-              email: result.additionalUserInfo.profile.email,
-              name: result.additionalUserInfo.profile.given_name,
-              surname: result.additionalUserInfo.profile.family_name,
-              addresses: [],
-              cart: {},
-              favorites: [],
-              orders: [],
-              phoneNumber: "",
-              photoUrl: null,
-            });
-          }
+  const provider = new GoogleAuthProvider();
+  
+  return signInWithPopup(auth, provider)
+    .then(async function (result) {
+      const userRef = doc(db, "Users", result.user.uid);
+      const docSnap = await getDoc(userRef);
+      
+      if (!docSnap.exists()) {
+        await setDoc(userRef, {
+          email: result.user.email,
+          name: result.user.displayName?.split(' ')[0] || '',
+          surname: result.user.displayName?.split(' ')[1] || '',
+          addresses: [],
+          cart: {},
+          favorites: [],
+          orders: [],
+          phoneNumber: "",
+          photoUrl: result.user.photoURL || null,
         });
+      }
+      return result;
     })
     .catch(function (error) {
       console.error("Google Auth Error: ", error);
+      throw error;
     });
 }

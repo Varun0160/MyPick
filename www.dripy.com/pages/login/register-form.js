@@ -25,144 +25,95 @@ const schema = yup.object().shape({
 
 export default function RegisterForm() {
   const [registerError, setRegisterError] = useState();
-  const { register, handleSubmit, watch, errors } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: yupResolver(schema),
   });
-  const onSubmit = ({ email, password, name, surname }) =>
-    emailRegister({ email, password })
-      .then((response) => {
-        registerDatabase({
-          id: response.user.uid,
-          email,
-          name,
-          surname,
-        })
-          .then(() =>
-            setRegisterError(
-              "You have registered succesfully. You can login now"
-            )
-          )
-          .catch((e) => setRegisterError(e.message));
-      })
-      .catch((error) => setRegisterError(error.message));
+
+  const onSubmit = async ({ email, password, name, surname }) => {
+    try {
+      const response = await emailRegister({ email, password });
+      
+      await registerDatabase({
+        id: response.user.uid,
+        email,
+        name,
+        surname,
+      });
+      
+      setRegisterError("You have registered successfully. You can login now");
+    } catch (error) {
+      setRegisterError(error.message || "Failed to register. Please try again.");
+    }
+  };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       style={{ display: "flex", flexDirection: "column", paddingTop: 0 }}
     >
-        {/* Social Media Buttons 
-      <hr style={{ width: "100%", height: 1, color: "#f6f6f655" }} />
-      <span
-        style={{
-          textAlign: "center",
-          marginTop: -35,
-          padding: 15,
-          backgroundColor: "white",
-          display: "flex",
-          alignSelf: "center",
-          width: "max-content",
-          fontWeight: "500",
-        }}
-      >
-        Register with social media
-      </span>
-
-      <div style={{ display: "flex" }}>
-        <SocialMediaButton
-          style={{ marginRight: 20 }}
-          icon="google"
-          onClick={googleAuth}
-        >
-          Google
-        </SocialMediaButton>
-        <SocialMediaButton icon="apple">Apple</SocialMediaButton>
-      </div> */}
-
-      {/* <hr
-        style={{ width: "100%", height: 1, color: "#f6f6f655", marginTop: 50 }}
-      />
-      <span
-        style={{
-          textAlign: "center",
-          marginTop: -35,
-          padding: 15,
-          backgroundColor: "white",
-          display: "flex",
-          alignSelf: "center",
-          width: "max-content",
-          fontWeight: "500",
-        }}
-      >
-        Register with E-mail
-      </span> */}
-
       <Input
-        name="name"
-        register={register}
         placeholder="Name"
-        error={errors.name}
+        error={errors?.name?.message}
+        {...register("name", { required: true })}
       />
-      {errors.name && (
+      {errors?.name && (
         <span style={{ color: "red", marginTop: 4, fontSize: 14 }}>
           {errors.name.message}
         </span>
       )}
+
       <Input
-        name="surname"
-        register={register}
         placeholder="Surname"
-        error={errors.surname}
+        error={errors?.surname?.message}
+        {...register("surname", { required: true })}
       />
-      {errors.surname && (
+      {errors?.surname && (
         <span style={{ color: "red", marginTop: 4, fontSize: 14 }}>
           {errors.surname.message}
         </span>
       )}
+
       <Input
-        name="email"
-        register={register}
+        type="email"
         placeholder="E-mail"
-        error={errors.email}
+        error={errors?.email?.message}
+        {...register("email", { required: true })}
       />
-      {errors.email && (
+      {errors?.email && (
         <span style={{ color: "red", marginTop: 4, fontSize: 14 }}>
           {errors.email.message}
         </span>
       )}
+
       <Input
-        name="password"
-        register={register}
-        placeholder="Password"
         type="password"
-        error={errors.password}
+        placeholder="Password"
+        error={errors?.password?.message}
+        {...register("password", { required: true })}
       />
-      {errors.password && (
+      {errors?.password && (
         <span style={{ color: "red", marginTop: 4, fontSize: 14 }}>
           {errors.password.message}
         </span>
       )}
-      {/* errors will return when field validation fails  */}
-      {errors.exampleRequired && <span>This field is required</span>}
 
+      <Button type="submit">Register</Button>
       {registerError && (
         <span
           style={{
-            color: "red",
-            marginTop: 20,
+            color: registerError.includes("successfully") ? "green" : "red",
+            marginTop: 10,
             fontSize: 14,
-            marginBottom: -10,
+            marginBottom: 10,
           }}
         >
           {registerError}
         </span>
       )}
-
-      <Button type="submit">Register</Button>
-      <div style={{ fontSize: 12, display: "flex" }}>
-        By clicking Register, you agree to use out Terms and that you have read
-        our Data Use Policy, including our Cookie Use
-      </div>
     </form>
   );
 }

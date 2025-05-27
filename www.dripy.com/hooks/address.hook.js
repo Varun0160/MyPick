@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../config/firebase";
+import { collection, doc, onSnapshot } from "firebase/firestore";
 
 const useAddresses = () => {
   const [data, setData] = useState([]);
@@ -7,32 +8,30 @@ const useAddresses = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchFromFirestore() {
-      auth.currentUser &&
-        db
-          .collection("Users")
-          .doc(auth.currentUser.uid)
-          .get()
-          .then(function (doc) {
-            const addresses = doc.data().addresses;
-            if (addresses) {
-              db.collection("Addresses")
-                .get()
-                .then(function (querySnapshot) {
-                  const addressArray = querySnapshot.docs
-                    .filter((doc) => addresses.includes(doc.id))
-                    .map(function (doc) {
-                      return { id: doc.id, ...doc.data() };
-                    });
-                  setData(addressArray);
-                  setLoading(false);
-                });
-            }
-          });
-    }
+    let unsubscribe;
+
+    const fetchFromFirestore = () => {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "Users", auth.currentUser.uid);
+
+        unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            const userData = docSnapshot.data();
+            setData(userData.addresses || []);
+          } else {
+            setData([]);
+          }
+          setLoading(false);
+        });
+      } else {
+        setData([]);
+        setLoading(false);
+      }
+    };
 
     fetchFromFirestore();
-  }, [auth.currentUser]);
+    return () => unsubscribe && unsubscribe();
+  }, []);
 
   return {
     data,
