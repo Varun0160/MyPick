@@ -1,0 +1,15 @@
+.image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  transition: opacity 0.3s ease;
+  
+  &:not([src]), &[src=""] {
+    opacity: 0;
+  }
+  
+  &[src] {
+    opacity: 1;
+  }
+}
